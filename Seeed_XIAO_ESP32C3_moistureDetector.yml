@@ -1,7 +1,7 @@
 substitutions:
   name: esphome-web-86ab8c
   friendly_name: Seeed XIAO ESP32C3
-  interval: 2h
+  interval: 5s
 
 esphome:
   name: ${name}
@@ -56,7 +56,9 @@ web_server:
 
 sensor:
   - platform: adc
-    pin: 3
+    pin: 
+      number: 3
+      allow_other_uses: true
     name: "Soil Moisture"
     unit_of_measurement: "%"
     device_class: MOISTURE
@@ -70,14 +72,37 @@ sensor:
           if (x < 0) return 0; 
           else if (x > 100) return 100;
           else return (x);
+      - median:
+          window_size: 7
+          send_every: 4
+          send_first_at: 3
     accuracy_decimals: 0
     id: moisture_sensor
+ 
+  - platform: adc
+    pin: 
+      number: 3
+      allow_other_uses: true
+    name: "Sensor Voltage"
+    update_interval: ${interval}
+    attenuation: 11db #required
+    filters:
+      - median:
+          window_size: 7
+          send_every: 4
+          send_first_at: 3
+    accuracy_decimals: 0
+
 
   - platform: wifi_signal
     name: "WiFi Signal"
     update_interval: ${interval}
     filters:
       - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+      - median:
+          window_size: 7
+          send_every: 4
+          send_first_at: 3
     unit_of_measurement: "Signal %"
     entity_category: "diagnostic"
   
@@ -92,20 +117,26 @@ sensor:
     attenuation: 11db #required
     filters:
      - multiply: 2.0
+     - median:
+        window_size: 7
+        send_every: 4
+        send_first_at: 3
      - calibrate_polynomial: #set your own values here
         degree: 4
         datapoints:
-        - 3.4 ->  0.0
-        - 3.6 ->  8.43
-        - 3.81 ->  50.06
-        - 3.86 ->  57.63
-        - 3.92 ->  72.56
-        - 3.96 ->  90.96
-        - 4.05 ->  100
+        - 3.0 ->  10
+        - 3.1 ->  20
+        - 3.2 ->  30
+        - 3.3 ->  50
+        - 3.4 ->  60
+        - 3.5 ->  75
+        - 3.6 ->  90
+        - 3.7 ->  100
      - lambda: |
         if (x < 0) return 0; 
         else if (x > 100) return 100;
         else return (x);
+
         
   - platform: adc
     pin: 
@@ -116,3 +147,9 @@ sensor:
     attenuation: 11db #required
     filters:
      - multiply: 2.0
+     - median:
+        window_size: 7
+        send_every: 4
+        send_first_at: 3
+
+# TODO: deep sleep with sensor turn on
