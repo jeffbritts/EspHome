@@ -1,6 +1,7 @@
 substitutions:
   name: esphome-web-86ab8c
   friendly_name: Seeed XIAO ESP32C3
+  interval: 2h
 
 esphome:
   name: ${name}
@@ -32,6 +33,10 @@ improv_serial:
 wifi:
   # Set up a wifi access point
   ap: {}
+  manual_ip:
+    static_ip: 192.168.4.110
+    gateway: 192.168.4.1
+    subnet: 255.255.255.0
 
 # In combination with the `ap` this allows the user
 # to provision wifi credentials to the device via WiFi AP.
@@ -51,11 +56,11 @@ web_server:
 
 sensor:
   - platform: adc
-    pin: 2
+    pin: 3
     name: "Soil Moisture"
     unit_of_measurement: "%"
     device_class: MOISTURE
-    update_interval: 1h
+    update_interval: ${interval}
     attenuation: 11db 
     filters:
       - calibrate_linear:
@@ -66,3 +71,48 @@ sensor:
           else if (x > 100) return 100;
           else return (x);
     accuracy_decimals: 0
+    id: moisture_sensor
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: ${interval}
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "Signal %"
+    entity_category: "diagnostic"
+  
+  - platform: adc
+    pin:
+      number: 2
+      allow_other_uses: true
+    name: "Battery Life"
+    unit_of_measurement: "%"
+    device_class: BATTERY
+    update_interval: ${interval}
+    attenuation: 11db #required
+    filters:
+     - multiply: 2.0
+     - calibrate_polynomial: #set your own values here
+        degree: 4
+        datapoints:
+        - 3.4 ->  0.0
+        - 3.6 ->  8.43
+        - 3.81 ->  50.06
+        - 3.86 ->  57.63
+        - 3.92 ->  72.56
+        - 3.96 ->  90.96
+        - 4.05 ->  100
+     - lambda: |
+        if (x < 0) return 0; 
+        else if (x > 100) return 100;
+        else return (x);
+        
+  - platform: adc
+    pin: 
+      number: 2
+      allow_other_uses: true
+    name: "Battery Voltage"
+    update_interval: ${interval}
+    attenuation: 11db #required
+    filters:
+     - multiply: 2.0
