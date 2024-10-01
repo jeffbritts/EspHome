@@ -1,7 +1,7 @@
 substitutions:
-  name: esphome-web-86ab8c
-  friendly_name: Seeed XIAO ESP32C3
-  interval: 5s
+  name: soil-sensor-1
+  friendly_name: Soil Sensor 1
+  interval: 60s
 
 esphome:
   name: ${name}
@@ -11,6 +11,12 @@ esphome:
   project:
     name: esphome.web
     version: dev
+  #on_boot:
+    #then:
+      #- switch.turn_on: sensor_power
+  #on_shutdown:
+      #then:
+      #- switch.turn_off: sensor_power
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -72,10 +78,10 @@ sensor:
           if (x < 0) return 0; 
           else if (x > 100) return 100;
           else return (x);
-      - median:
-          window_size: 7
-          send_every: 4
-          send_first_at: 3
+      # - median:
+      #    window_size: 7
+       #   send_every: 4
+      #    send_first_at: 3
     accuracy_decimals: 0
     id: moisture_sensor
  
@@ -87,10 +93,10 @@ sensor:
     update_interval: ${interval}
     attenuation: 11db #required
     filters:
-      - median:
-          window_size: 7
-          send_every: 4
-          send_first_at: 3
+      #- median:
+         # window_size: 7
+         # send_every: 4
+         # send_first_at: 3
     accuracy_decimals: 0
 
 
@@ -117,10 +123,10 @@ sensor:
     attenuation: 11db #required
     filters:
      - multiply: 2.0
-     - median:
-        window_size: 7
-        send_every: 4
-        send_first_at: 3
+    # - median:
+     #   window_size: 7
+     #   send_every: 4
+     #   send_first_at: 3
      - calibrate_polynomial: #set your own values here
         degree: 4
         datapoints:
@@ -147,9 +153,17 @@ sensor:
     attenuation: 11db #required
     filters:
      - multiply: 2.0
-     - median:
-        window_size: 7
-        send_every: 4
-        send_first_at: 3
+     #- median:
+      #  window_size: 7
+      #  send_every: 4
+      #  send_first_at: 3
 
-# TODO: deep sleep with sensor turn on
+switch:
+  - platform: gpio
+    pin: GPIO10
+    id: sensor_power
+    internal: true
+
+#deep_sleep:
+#  run_duration: 10s
+#  sleep_duration: '0:00:20'
