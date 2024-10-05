@@ -11,12 +11,14 @@ esphome:
   project:
     name: esphome.web
     version: dev
-  #on_boot:
-    #then:
-      #- switch.turn_on: sensor_power
-  #on_shutdown:
-      #then:
-      #- switch.turn_off: sensor_power
+
+
+  on_boot:
+    then:
+      - switch.turn_on: sensor_power
+  on_shutdown:
+      then:
+      - switch.turn_off: sensor_power
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -158,12 +160,26 @@ sensor:
       #  send_every: 4
       #  send_first_at: 3
 
-switch:
+binary_sensor:
   - platform: gpio
-    pin: GPIO10
-    id: sensor_power
-    internal: true
+    name: "Wake Mode"
+    id: wake_mode_switch
+    pin:
+      number: GPIO5
+      mode: INPUT_PULLUP
+      inverted: True
+      allow_other_uses: true
+  
+# switch:
+#   - platform: gpio
+#     pin: GPIO10
+#     id: sensor_power
+#     internal: true
 
-#deep_sleep:
-#  run_duration: 10s
-#  sleep_duration: '0:00:20'
+# deep_sleep:
+#   run_duration: 120s
+#   sleep_duration: '0:10:59'
+#   wakeup_pin:
+#     number: 5
+#     allow_other_uses: true
+#   wakeup_pin_mode: KEEP_AWAKE
