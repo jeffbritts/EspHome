@@ -1,7 +1,9 @@
 substitutions:
-  name: soil-sensor-1
-  friendly_name: Soil Sensor 1
-  interval: 60s
+  name: "soil-sensor-2"
+  friendly_name: Soil Sensor 2
+  interval: 2s
+  deep_sleep_run_duration: 15s
+  deep_sleep_sleep_duration: 1h
 
 esphome:
   name: ${name}
@@ -11,14 +13,13 @@ esphome:
   project:
     name: esphome.web
     version: dev
-
-
   on_boot:
     then:
       - switch.turn_on: sensor_power
   on_shutdown:
       then:
       - switch.turn_off: sensor_power
+  
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -40,9 +41,11 @@ improv_serial:
 
 wifi:
   # Set up a wifi access point
-  ap: {}
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: True
   manual_ip:
-    static_ip: 192.168.4.110
+    static_ip: 192.168.4.118
     gateway: 192.168.4.1
     subnet: 255.255.255.0
 
@@ -65,13 +68,13 @@ web_server:
 sensor:
   - platform: adc
     pin: 
-      number: 3
+      number: GPIO2
       allow_other_uses: true
     name: "Soil Moisture"
     unit_of_measurement: "%"
     device_class: MOISTURE
     update_interval: ${interval}
-    attenuation: 11db 
+    attenuation: 11db      
     filters:
       - calibrate_linear:
         - 1.37 ->  100.00 
@@ -81,42 +84,40 @@ sensor:
           else if (x > 100) return 100;
           else return (x);
       # - median:
-      #    window_size: 7
-       #   send_every: 4
-      #    send_first_at: 3
+      #     window_size: 5
+      #     send_every: 1
+      #     send_first_at: 1
     accuracy_decimals: 0
     id: moisture_sensor
  
   - platform: adc
     pin: 
-      number: 3
+      number: GPIO2
       allow_other_uses: true
-    name: "Sensor Voltage"
+    name: "Soil Sensor Voltage"
     update_interval: ${interval}
     attenuation: 11db #required
-    filters:
-      #- median:
-         # window_size: 7
-         # send_every: 4
-         # send_first_at: 3
-    accuracy_decimals: 0
-
+    # filters:
+    #   - median:
+    #       window_size: 5
+    #       send_every: 1
+    #       send_first_at: 1
 
   - platform: wifi_signal
     name: "WiFi Signal"
     update_interval: ${interval}
     filters:
       - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-      - median:
-          window_size: 7
-          send_every: 4
-          send_first_at: 3
+      # - median:
+      #     window_size: 7
+      #     send_every: 4
+      #     send_first_at: 3
     unit_of_measurement: "Signal %"
     entity_category: "diagnostic"
   
   - platform: adc
     pin:
-      number: 2
+      number: GPIO4
       allow_other_uses: true
     name: "Battery Life"
     unit_of_measurement: "%"
@@ -124,31 +125,31 @@ sensor:
     update_interval: ${interval}
     attenuation: 11db #required
     filters:
-     - multiply: 2.0
-    # - median:
-     #   window_size: 7
-     #   send_every: 4
-     #   send_first_at: 3
-     - calibrate_polynomial: #set your own values here
-        degree: 4
-        datapoints:
-        - 3.0 ->  10
-        - 3.1 ->  20
-        - 3.2 ->  30
-        - 3.3 ->  50
-        - 3.4 ->  60
-        - 3.5 ->  75
-        - 3.6 ->  90
-        - 3.7 ->  100
-     - lambda: |
-        if (x < 0) return 0; 
-        else if (x > 100) return 100;
-        else return (x);
+      - multiply: 2.0
+     # - median:
+      #    window_size: 5
+     #     send_every: 1
+      #    send_first_at: 1
+      - calibrate_polynomial: #set your own values here
+          degree: 4
+          datapoints:
+          - 3.0 ->  10
+          - 3.1 ->  20
+          - 3.2 ->  30
+          - 3.3 ->  50
+          - 3.4 ->  60
+          - 3.5 ->  75
+          - 3.6 ->  90
+          - 3.7 ->  100
+      - lambda: |
+          if (x < 0) return 0; 
+          else if (x > 100) return 100;
+          else return (x);
 
         
   - platform: adc
     pin: 
-      number: 2
+      number: GPIO4
       allow_other_uses: true
     name: "Battery Voltage"
     update_interval: ${interval}
@@ -156,30 +157,43 @@ sensor:
     filters:
      - multiply: 2.0
      #- median:
-      #  window_size: 7
-      #  send_every: 4
-      #  send_first_at: 3
+     #   window_size: 5
+     #   send_every: 1
+      #  send_first_at: 1
 
-binary_sensor:
+
+switch:
   - platform: gpio
-    name: "Wake Mode"
-    id: wake_mode_switch
-    pin:
-      number: GPIO5
-      mode: INPUT_PULLUP
-      inverted: True
-      allow_other_uses: true
-  
-# switch:
-#   - platform: gpio
-#     pin: GPIO10
-#     id: sensor_power
-#     internal: true
+    pin: GPIO3
+    id: sensor_power
+    internal: true
 
-# deep_sleep:
-#   run_duration: 120s
-#   sleep_duration: '0:10:59'
-#   wakeup_pin:
-#     number: 5
-#     allow_other_uses: true
-#   wakeup_pin_mode: KEEP_AWAKE
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: ${deep_sleep_run_duration}
+  sleep_duration: ${deep_sleep_sleep_duration}
+  
+# use to keep sensors awake or start sleep
+# can be done by sensor name or all sensors
+
+mqtt:
+  broker: 192.168.4.109
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  on_message:
+    - topic: ${name}/wake_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.prevent: deep_sleep_1
+    - topic: ${name}/sleep_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.enter: deep_sleep_1
+    - topic: all_soil_sensors/wake_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.enter: deep_sleep_1
+    - topic: all_soil_sensors/wake_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.prevent: deep_sleep_1
