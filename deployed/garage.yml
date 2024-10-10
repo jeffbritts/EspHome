@@ -1,6 +1,6 @@
 substitutions:
-  name: "bee-room"
-  friendly_name: "Bee Room"
+  name: "garage"
+  friendly_name: "Garage"
 
 esphome:
   name: ${name}
@@ -55,9 +55,9 @@ sensor:
     # mac address via the app, mac address in logs is esp32 bluetooth
     mac_address: "49:24:06:18:00:19"
     temperature:
-      name: "Shop Freezer Temperature"
+      name: "Garage Freezer Temperature"
       filters:
         - lambda: return x * (9.0/5.0) + 32.0;
       unit_of_measurement: "°F"
     battery_level:
-      name: "Shop Freezer Sensor Battery"
+      name: "Garage Freezer Sensor Battery"
