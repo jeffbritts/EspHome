@@ -1,7 +1,9 @@
 substitutions:
   name: "soil-sensor-2"
-  friendly_name: Soil Sensor 2
-  interval: 2s
+  friendly_name: "Soil Sensor 2"
+  interval: 15s
+  deep_sleep_run_duration: 10s
+  deep_sleep_sleep_duration: 1h
 
 esphome:
   name: ${name}
@@ -11,9 +13,12 @@ esphome:
   project:
     name: esphome.web
     version: dev
-  # on_boot:
-  #   then:
-  #     - switch.turn_on: sensor_power
+  on_boot:
+    then:
+      - switch.turn_on: sensor_power
+  on_shutdown:
+      then:
+      - switch.turn_off: sensor_power
   
 
 esp32:
@@ -63,7 +68,7 @@ web_server:
 sensor:
   - platform: adc
     pin: 
-      number: 3
+      number: GPIO2
       allow_other_uses: true
     name: "Soil Moisture"
     unit_of_measurement: "%"
@@ -71,25 +76,24 @@ sensor:
     update_interval: ${interval}
     attenuation: 11db      
     filters:
-      - calibrate_linear:
-        - 1.37 ->  100.00 
-        - 2.6 ->  0.00
-      - lambda: |
-          if (x < 0) return 0; 
-          else if (x > 100) return 100;
-          else return (x);
       - median:
           window_size: 5
           send_every: 1
           send_first_at: 1
+      - calibrate_linear:
+        - 0.50 ->  100.00 
+        - 1.17 ->  0.00
+      - lambda: |
+          if (x < 0) return 0; 
+          else if (x > 100) return 100;
+          else return (x);
     accuracy_decimals: 0
-    id: moisture_sensor
  
   - platform: adc
     pin: 
-      number: 3
+      number: GPIO2
       allow_other_uses: true
-    name: "Sensor Voltage"
+    name: "Soil Sensor Voltage"
     update_interval: ${interval}
     attenuation: 11db #required
     filters:
@@ -102,17 +106,17 @@ sensor:
     name: "WiFi Signal"
     update_interval: ${interval}
     filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
       - median:
-          window_size: 7
-          send_every: 4
-          send_first_at: 3
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
     unit_of_measurement: "Signal %"
     entity_category: "diagnostic"
   
   - platform: adc
     pin:
-      number: 2
+      number: GPIO4
       allow_other_uses: true
     name: "Battery Life"
     unit_of_measurement: "%"
@@ -120,56 +124,56 @@ sensor:
     update_interval: ${interval}
     attenuation: 11db #required
     filters:
-      - multiply: 2.0
       - median:
           window_size: 5
           send_every: 1
           send_first_at: 1
-      - calibrate_polynomial: #set your own values here
-          degree: 4
-          datapoints:
-          - 3.0 ->  10
-          - 3.1 ->  20
-          - 3.2 ->  30
-          - 3.3 ->  50
-          - 3.4 ->  60
-          - 3.5 ->  75
-          - 3.6 ->  90
-          - 3.7 ->  100
+      - multiply: 2.0
+      - calibrate_linear:
+        - 3.6 ->  100.00 
+        - 3.0 ->  0.00
+      # - calibrate_polynomial: #set your own values here
+      #     degree: 4
+      #     datapoints:
+      #     - 3.0 ->  10
+      #     - 3.1 ->  20
+      #     - 3.2 ->  30
+      #     - 3.3 ->  50
+      #     - 3.4 ->  60
+      #     - 3.5 ->  75
+      #     - 3.6 ->  90
+      #     - 3.7 ->  100
       - lambda: |
           if (x < 0) return 0; 
           else if (x > 100) return 100;
           else return (x);
-
+    accuracy_decimals: 0
         
   - platform: adc
     pin: 
-      number: 2
+      number: GPIO4
       allow_other_uses: true
     name: "Battery Voltage"
     update_interval: ${interval}
     attenuation: 11db #required
     filters:
-     - multiply: 2.0
-     - median:
-        window_size: 5
-        send_every: 1
-        send_first_at: 1
-
-
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+      - multiply: 2.0
+ 
 switch:
   - platform: gpio
-    pin: GPIO10
+    pin: GPIO3
     id: sensor_power
     internal: true
 
 deep_sleep:
   id: deep_sleep_1
-  run_duration: 11s
-  sleep_duration: 5min
+  run_duration: ${deep_sleep_run_duration}
+  sleep_duration: ${deep_sleep_sleep_duration}
   
-
-
 # use to keep sensors awake or start sleep
 # can be done by sensor name or all sensors
 
@@ -178,19 +182,19 @@ mqtt:
   username: !secret mqtt_username
   password: !secret mqtt_password
   on_message:
-    - topic: ${name}/wake_mode
+    - topic: ${name}/wake-mode
       payload: 'ON'
       then:
         - deep_sleep.prevent: deep_sleep_1
-    - topic: ${name}/sleep_mode
-      payload: 'ON'
+    - topic: ${name}/wake-mode
+      payload: 'OFF'
       then:
         - deep_sleep.enter: deep_sleep_1
-    - topic: all_soil_sensors/wake_mode
-      payload: 'ON'
-      then:
-        - deep_sleep.enter: deep_sleep_1
-    - topic: all_soil_sensors/wake_mode
+    - topic: all_soil_sensors/wake-mode
       payload: 'ON'
       then:
         - deep_sleep.prevent: deep_sleep_1
+    - topic: all_soil_sensors/wake-mode
+      payload: 'OFF'
+      then:
+        - deep_sleep.enter: deep_sleep_1
