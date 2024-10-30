@@ -1,0 +1,105 @@
+substitutions:
+  interval: 2s
+  sensor_1_pin: GPIO36
+  sensor_2_pin: GPIO34
+  sensor_3_pin: GPIO35
+  sensor_1_label: "Sensor 1 - Lettuce 1"
+  sensor_2_label: "Sensor 2 - Lettuce 2"
+  sensor_3_label: "Sensor 3 - Chard"
+  dht_pin: GPIO23
+
+esphome:
+  name: lettuce-controller
+  friendly_name: Lettuce Controller
+  min_version: 2024.6.0
+  name_add_mac_suffix: false
+  project:
+    name: esphome.web
+    version: dev
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret lettuce_apikey
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: smeg2
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap: {}
+
+captive_portal:
+
+dashboard_import:
+  package_import_url: github://esphome/firmware/esphome-web/esp32c3.yaml@main
+  import_full_config: true
+
+# Sets up Bluetooth LE (Only on ESP32) to allow the user
+# to provision wifi credentials to the device.
+esp32_improv:
+  authorizer: none
+
+web_server:
+
+sensor:
+  - platform: adc
+    pin: ${sensor_1_pin}
+    name: "${sensor_1_label} (${sensor_1_pin})"
+    unit_of_measurement: "V"
+    update_interval: ${interval}
+    attenuation: 12db #required
+    id: level_sensor_1
+    accuracy_decimals: 2
+
+  - platform: adc
+    pin: ${sensor_2_pin}
+    name: "${sensor_2_label} (${sensor_2_pin})"
+    unit_of_measurement: "V"
+    update_interval: ${interval}
+    attenuation: 12db #required
+    id: level_sensor_2
+    accuracy_decimals: 2
+
+  - platform: adc
+    pin: ${sensor_3_pin}
+    name: "${sensor_3_label} (${sensor_3_pin})"
+    unit_of_measurement: "V"
+    update_interval: ${interval}
+    attenuation: 12db #required
+    id: level_sensor_3
+    accuracy_decimals: 2
+
+  - platform: dht
+    pin: ${dht_pin}
+    model: DHT22
+    temperature:
+      name: "Lettuce Temperature"
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0;
+      unit_of_measurement: "°F"
+    humidity:
+      name: "Lettuce Humidity"
+    update_interval: ${interval}
+    
+  - platform: wifi_signal
+
+    name: "WiFi Signal"
+    update_interval: ${interval}
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "Signal %"
+    entity_category: "diagnostic"  

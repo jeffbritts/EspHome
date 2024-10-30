@@ -53,7 +53,7 @@ esp32_ble_tracker:
 sensor:
   - platform: inkbird_ibsth1_mini
     # mac address via the app, mac address in logs is esp32 bluetooth
-    mac_address: "49:24:06:18:00:19"
+    mac_address: "49:24:06:18:06:04"
     temperature:
       name: "Garage Freezer Temperature"
       filters:
