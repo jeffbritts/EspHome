@@ -3,7 +3,7 @@ substitutions:
   friendly_name: "Soil Sensor 2"
   interval: 15s
   deep_sleep_run_duration: 10s
-  deep_sleep_sleep_duration: 1h
+  deep_sleep_sleep_duration: 6h
 
 esphome:
   name: ${name}

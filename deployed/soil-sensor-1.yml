@@ -3,7 +3,7 @@ substitutions:
   friendly_name: "Soil Sensor 1"
   interval: 15s
   deep_sleep_run_duration: 10s
-  deep_sleep_sleep_duration: 1h
+  deep_sleep_sleep_duration: 6h
 
 esphome:
   name: ${name}
@@ -83,7 +83,7 @@ sensor:
           send_first_at: 1
       - calibrate_linear:
         - 1.00 ->  100.00 
-        - 2.40 ->  0.00
+        - 2.39 ->  0.00
       - lambda: |
           if (x < 0) return 0; 
           else if (x > 100) return 100;
